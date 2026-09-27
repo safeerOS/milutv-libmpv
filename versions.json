@@ -1,5 +1,5 @@
 {
-  "release": "mpv-f9850ee-ff9.0.1-r1",
+  "release": "mpv-f9850ee-ff9.0.1-r2",
   "mpv": {
     "repository": "https://github.com/mpv-player/mpv",
     "commit": "f9850ee727ed54a4feb042a5c0802768f141810b",

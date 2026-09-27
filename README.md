@@ -49,7 +49,11 @@ The build follows the `win32` job of mpv's own CI (`.github/workflows/build.yml`
   libass, FreeType, HarfBuzz, FriBidi and zlib linked in statically. OpenGL render API on Windows
   (`gl-win32`), ANGLE headers for the `d3d11-egl` interop (zero-copy D3D11VA decoding under ANGLE),
   `d3d-hwaccel` (D3D11VA and the `d3d11vpp` deinterlacing filter), WASAPI audio. No Vulkan, no D3D11
-  render API, no shader compiler, no scripting.
+  render API, no shader compiler, no scripting. One change to mpv's source, made by
+  `scripts/build-mpv.ps1`: the D3D11 frames `mp_update_av_hw_frames_pool` allocates get
+  `D3D11_BIND_RENDER_TARGET` under `d3d-hwaccel` as well as under the disabled D3D11 render API,
+  since `d3d11vpp` draws into them (without it the filter fails at its first frame and nothing is
+  deinterlaced).
 - **FFmpeg:** its meson port (`gstreamer/meson-ports/ffmpeg`), `gpl`, `version3` and `nonfree`
   disabled, TLS through Windows' Schannel (no OpenSSL, GnuTLS or mbedTLS), D3D11VA hardware
   acceleration, and an allow-list of the decoders, parsers, demuxers and protocols IPTV streams use

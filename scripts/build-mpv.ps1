@@ -29,6 +29,19 @@ if (-not (Test-Path (Join-Path $mpv '.git'))) {
 git -C $mpv fetch --quiet --depth 1 origin $versions.mpv.commit
 git -C $mpv checkout --quiet --force FETCH_HEAD
 
+# 1b. The render target of d3d11vpp (MiluTV #161). mp_update_av_hw_frames_pool gives the D3D11 frames
+#     it allocates D3D11_BIND_RENDER_TARGET under HAVE_D3D11 only, the D3D11 render API, which this
+#     build disables (-Dd3d11=disabled). vf_d3d11vpp (d3d-hwaccel) draws into those frames: without the
+#     flag, CreateVideoProcessorOutputView fails at the first frame, mpv disables the deinterlacer and
+#     plays the fields woven. The flag belongs to d3d-hwaccel, which compiles hwcontext_d3d11va.
+$pool = Join-Path $mpv 'video\mp_image_pool.c'
+$source = [IO.File]::ReadAllText($pool)
+$guard = [regex]'(?m)^#if HAVE_D3D11\r?$'
+if ($guard.Matches($source).Count -ne 2) {
+  throw "video/mp_image_pool.c no longer has the two '#if HAVE_D3D11' guards of the d3d11vpp fix: check the fix against this mpv commit."
+}
+[IO.File]::WriteAllText($pool, $guard.Replace($source, '#if HAVE_D3D11 || HAVE_D3D_HWACCEL'))
+
 # 2. Subprojects: the wrapdb wraps committed in subprojects/ (their versions must match
 #    versions.json), and git wraps generated from versions.json. Top-level wraps win over the ones
 #    nested subprojects carry, so these pins are the versions actually built.
