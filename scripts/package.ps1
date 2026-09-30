@@ -96,6 +96,40 @@ foreach ($dll in Get-ChildItem $stage -Filter '*.dll') {
   }
 }
 
+# 4b. Safeer (pravilo 6): the MSVC runtime the DLLs were built against travels WITH the package.
+#     libplacebo/ANGLE are built with this toolchain's STL; an older msvcp140.dll in System32
+#     (seen: 14.32 on the test PC) crashes with 0xc0000005 inside MSVCP140. So the exact redist
+#     files of the toolchain are shipped in runtime\ and their versions recorded in the manifest;
+#     the app preloads them (app-local deployment), never relying on whatever System32 has.
+$runtimeDir = Join-Path $stage 'runtime'
+New-Item -ItemType Directory -Force $runtimeDir | Out-Null
+$redistRoot = $env:VCToolsRedistDir
+if (-not $redistRoot -and $env:VS) { $redistRoot = Join-Path $env:VS 'VC\Redist\MSVC' }
+if (-not $redistRoot -or -not (Test-Path $redistRoot)) { throw 'MSVC redist directory not found (VCToolsRedistDir unset and no VS\VC\Redist\MSVC).' }
+$crtDirs = @(Get-ChildItem $redistRoot -Recurse -Directory -Depth 3 | Where-Object { $_.Name -like 'Microsoft.VC*.CRT' -and $_.FullName -match "[\\/]$Arch[\\/]" })
+if ($crtDirs.Count -eq 0) { throw "No Microsoft.VC*.CRT directory for $Arch under $redistRoot." }
+$crtDir = ($crtDirs | Sort-Object FullName -Descending)[0]
+$runtimeVersions = [ordered]@{}
+foreach ($rt in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
+  $src = Join-Path $crtDir.FullName $rt
+  if (-not (Test-Path $src)) { throw "Runtime file $rt missing in $($crtDir.FullName)." }
+  Copy-Item $src $runtimeDir
+  $runtimeVersions[$rt] = (Get-Item $src).VersionInfo.FileVersion
+}
+$runtimeVersions['toolchainVCToolsVersion'] = $env:VCToolsVersion
+$runtimeVersions['source'] = $crtDir.FullName
+$redistNote = @(Get-ChildItem $env:VS -Filter 'redist.txt' -Recurse -Depth 2 -File -ErrorAction SilentlyContinue | Select-Object -First 1)
+New-Item -ItemType Directory -Force (Join-Path $stage 'licenses\msvc-runtime') | Out-Null
+if ($redistNote.Count -gt 0) { Copy-Item $redistNote[0].FullName (Join-Path $stage 'licenses\msvc-runtime\redist.txt') }
+@(
+  'Microsoft Visual C++ Redistributable files (msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll),',
+  "taken from the build toolchain: $($crtDir.FullName)",
+  'Redistributable under the Microsoft Visual Studio licence terms for the "Distributable Code"',
+  '(see redist.txt when present). Versions:'
+) + ($runtimeVersions.GetEnumerator() | Where-Object { $_.Key -like '*.dll' } | ForEach-Object { "  $($_.Key) $($_.Value)" }) |
+  Set-Content (Join-Path $stage 'licenses\msvc-runtime\README.txt') -Encoding utf8
+Write-Output "MSVC runtime shipped from $($crtDir.FullName): $(($runtimeVersions.GetEnumerator() | Where-Object { $_.Key -like '*.dll' } | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ', ')"
+
 # 5. Licences: the LGPL text, then every licence file of mpv, of each subproject and of ANGLE.
 Copy-Item (Join-Path $repoRoot 'COPYING.LGPL-2.1') (Join-Path $stage 'licenses')
 function Copy-Licenses([string]$From, [string]$To) {
@@ -145,6 +179,7 @@ $manifest = [ordered]@{
     clang = (clang --version | Select-Object -First 1)
     meson = (meson --version)
   }
+  runtime     = $runtimeVersions
   mesonArgs   = @(Get-Content (Join-Path $WorkDir "meson-args-$Arch.txt"))
   sha256      = $files
 }
