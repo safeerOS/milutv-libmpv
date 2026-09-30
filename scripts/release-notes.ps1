@@ -18,6 +18,7 @@ $lines = @(
   "| FFmpeg | $($v.ffmpeg.version), meson port ``$($v.ffmpeg.branch)`` @ ``$($v.ffmpeg.commit.Substring(0, 10))`` |"
   "| libplacebo | $($v.libplacebo.tag) |"
   "| libass | $($v.libass.tag) |"
+  "| dav1d | $($v.dav1d.version) [``$($v.dav1d.commit.Substring(0, 10))``]($($v.dav1d.repository -replace '\.git$', '')/commit/$($v.dav1d.commit)) (AV1, BSD-2-Clause) |"
 )
 foreach ($p in $v.wrapdb.PSObject.Properties) { $lines += "| $($p.Name) | $($p.Value) (WrapDB) |" }
 # ANGLE as built, from the angle-<arch>.json that build-angle.ps1 wrote: angle.commit and
