@@ -67,6 +67,12 @@ The build follows the `win32` job of mpv's own CI (`.github/workflows/build.yml`
 - **Checks before packaging:** a single DLL comes out; it exports every entry point the MiluTV
   player resolves ([player-abi.json](player-abi.json)); no DLL depends on anything but Windows and
   the MSVC runtime (in particular not on `vulkan-1.dll`); the licence check above.
+- **MSVC runtime (Safeer):** the package ships the toolchain's own `msvcp140.dll`, `vcruntime140.dll`
+  and `vcruntime140_1.dll` in `runtime/` (versions in `manifest.json` → `runtime`, licence note in
+  `licenses/msvc-runtime/`). The consuming app must load them app-locally before any other C++ DLL:
+  ANGLE and libplacebo built with STL 14.5x crash (0xc0000005 in MSVCP140) on a machine whose
+  System32 carries an older runtime such as 14.32. `scripts/check-dll-deps.py --dir <package>`
+  verifies the bundle; `scripts/smoke-safeer-player.py --runtime-dir <package>/runtime` preloads it.
 
 Every version is pinned in [versions.json](versions.json) and `subprojects/*.wrap` (WrapDB wraps with
 their source hashes). The FFmpeg, libplacebo and libass wraps are generated from `versions.json`.
