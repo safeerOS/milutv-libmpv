@@ -303,6 +303,30 @@ def main() -> int:
         parser.error("--dir must name an existing package directory")
     result = analyze(sorted(args.dir.glob("*.dll"), key=lambda p: p.name.casefold()), {dll_key(n) for n in args.allow})
     failed, _ = print_report(result)
+    # Safeer rule 6: the package must carry its own MSVC runtime (runtime/), matching the toolchain.
+    runtime_dir = args.dir / "runtime"
+    needed = ("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+    present = [n for n in needed if (runtime_dir / n).is_file()]
+    manifest_runtime = None
+    manifest_path = args.dir / "manifest.json"
+    if manifest_path.is_file():
+        try:
+            manifest_runtime = json.loads(manifest_path.read_text(encoding="utf-8-sig")).get("runtime")
+        except (OSError, ValueError):
+            manifest_runtime = None
+    if len(present) == len(needed):
+        print("MSVC runtime: bundled in runtime/ (app-local): " + ", ".join(present))
+        if manifest_runtime:
+            print("  versions (manifest): " + ", ".join(f"{k}={v}" for k, v in manifest_runtime.items() if k.endswith(".dll")))
+            print(f"  toolchain VCToolsVersion: {manifest_runtime.get('toolchainVCToolsVersion')}")
+    else:
+        missing = [n for n in needed if n not in present]
+        print("MSVC runtime: NOT bundled (missing in runtime/: " + ", ".join(missing) + ")")
+        if manifest_runtime is not None:
+            print("  FAIL: manifest declares a bundled runtime but the files are missing.")
+            failed = True
+        else:
+            print("  WARNING: the package relies on System32 msvcp140/vcruntime140; an older runtime (e.g. 14.32) crashes ANGLE/libplacebo.")
     if args.json:
         args.json.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return 1 if failed else 0
