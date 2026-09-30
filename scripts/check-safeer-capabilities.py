@@ -14,7 +14,7 @@ values = {}
 for header in headers:
     values.update(dict(re.findall(r'^\s*#define\s+(CONFIG_\w+)\s+([01])\b', header.read_text(errors='replace'), re.M)))
 required = ['LIBDAV1D', 'LIBXML2', 'LIBDAV1D_DECODER', 'H264_DECODER',
-            'HEVC_DECODER', 'VP9_DECODER', 'MPEG4_DECODER', 'DASH_DEMUXER',
+            'HEVC_DECODER', 'VP9_DECODER', 'MPEG4_DECODER', 'H263_DECODER', 'DASH_DEMUXER',
             'HLS_DEMUXER', 'MATROSKA_DEMUXER', 'MOV_DEMUXER',
             'PNG_ENCODER', 'MJPEG_ENCODER', 'HTTP_PROTOCOL', 'HTTPS_PROTOCOL',
             'SCHANNEL']
