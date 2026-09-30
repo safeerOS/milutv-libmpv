@@ -72,8 +72,10 @@ Write-GitWrap 'ffmpeg' $versions.ffmpeg.repository $versions.ffmpeg.commit @(
 Write-GitWrap 'libplacebo' $versions.libplacebo.repository $versions.libplacebo.tag @()
 Write-GitWrap 'libass' $versions.libass.repository $versions.libass.tag @()
 
+# dav1d 1.5.4 ne klice meson.override_dependency('dav1d'); zato [provide] z imenom spremenljivke
+# (src/meson.build: dav1d_dep = declare_dependency(...)), sicer FFmpeg odvisnosti 'dav1d' ne najde.
 Write-GitWrap 'dav1d' $versions.dav1d.repository $versions.dav1d.commit @(
-  'dependency_names = dav1d'
+  'dav1d = dav1d_dep'
 )
 
 # 3. FFmpeg allow-list (see ffmpeg-components.json).
