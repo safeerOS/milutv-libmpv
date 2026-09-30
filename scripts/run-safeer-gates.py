@@ -43,9 +43,9 @@ def png_has_picture(path):
     distinct = len(set(raw[:2_000_000]))
     return (distinct >= 8), 'size=%dx%d distinct_bytes=%d' % (w, h, distinct)
 
-def run_smoke(dll_dir, source, report, av1=False, png=None, seconds=8):
+def run_smoke(dll_dir, source, report, av1=False, png=None, seconds=8, runtime_dir=None):
     cmd = [sys.executable, str(SMOKE), '--dll-dir', str(dll_dir), '--source', str(source),
-           '--seconds', str(seconds), '--report', str(report)]
+           '--seconds', str(seconds), '--report', str(report)] + (['--runtime-dir', str(runtime_dir)] if runtime_dir else [])
     if av1: cmd.append('--av1')
     if png: cmd += ['--png', str(png)]
     t0 = time.time()
@@ -84,6 +84,7 @@ def main():
     a.add_argument('--out-dir', required=True, type=Path)
     a.add_argument('--dash-dir', type=Path)
     a.add_argument('--seconds', type=float, default=8)
+    a.add_argument('--runtime-dir', type=Path, help='app-local MSVC runtime dir, passed to smoke')
     args = a.parse_args()
     dll, media, out = args.dll_dir.resolve(), args.media_dir.resolve(), args.out_dir.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -106,7 +107,7 @@ def main():
         dash_url = 'http://127.0.0.1:%d/index.mpd' % server.server_address[1]
 
     def gate(name, source, av1=False, png=None):
-        r = run_smoke(dll, source, out / f'{name}-{stamp}.json', av1=av1, png=png, seconds=args.seconds)
+        r = run_smoke(dll, source, out / f'{name}-{stamp}.json', av1=av1, png=png, seconds=args.seconds, runtime_dir=args.runtime_dir)
         S['gates'][name] = r
         print('%-14s %s  %s' % (name, 'PREHOD' if r['ok'] else 'PADEC ', r.get('video_codec') or r.get('error') or ''))
         return r
@@ -128,7 +129,7 @@ def main():
     gate('h264_po', media / 'h264_24s.mp4')
 
     for name, f in (('mpeg4p2_mp4', 'mpeg4p2_24s.mp4'), ('mpeg4p2_avi', 'mpeg4p2_24s.avi')):
-        r = run_smoke(dll, media / f, out / f'{name}-{stamp}.json', seconds=args.seconds)
+        r = run_smoke(dll, media / f, out / f'{name}-{stamp}.json', seconds=args.seconds, runtime_dir=args.runtime_dir)
         if not r['ok']:
             r['probe'] = mpeg4_probe(dll, media / f)
         S['diagnostics'][name] = r

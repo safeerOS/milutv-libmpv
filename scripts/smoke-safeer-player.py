@@ -16,6 +16,7 @@ p.add_argument('--av1', action='store_true')
 p.add_argument('--png', type=Path)
 p.add_argument('--seconds', type=float, default=10)
 p.add_argument('--report', type=Path, default=Path('safeer-smoke.json'))
+p.add_argument('--runtime-dir', type=Path, help='app-local MSVC runtime (msvcp140/vcruntime140/vcruntime140_1); preloaded only if not already in process')
 a = p.parse_args()
 if os.name != 'nt' or struct.calcsize('P') != 8:
     raise SystemExit('Run in 64-bit Python on Windows')
@@ -24,10 +25,31 @@ if not (folder / 'libmpv-2.dll').is_file():
     raise SystemExit('libmpv-2.dll missing')
 handle = os.add_dll_directory(str(folder))
 os.environ['PATH'] = str(folder) + os.pathsep + os.environ.get('PATH', '')
+import ctypes
+from ctypes import wintypes
+_k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+_k32.GetModuleHandleW.restype = wintypes.HMODULE; _k32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
+runtime_info = {}
+def _preload_runtime(rt):
+    for name in ('vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll'):
+        if _k32.GetModuleHandleW(name):
+            runtime_info[name] = 'already-loaded'; continue
+        f = rt / name
+        if f.is_file():
+            ctypes.WinDLL(str(f)); runtime_info[name] = 'preloaded:' + str(f)
+        else:
+            runtime_info[name] = 'missing-in-runtime-dir'
+if a.runtime_dir:
+    _preload_runtime(a.runtime_dir.resolve(strict=True))
 import mpv
 
+def _loaded_path(name):
+    h = _k32.GetModuleHandleW(name)
+    if not h: return None
+    buf = ctypes.create_unicode_buffer(1024); _k32.GetModuleFileNameW(wintypes.HMODULE(h), buf, 1024); return buf.value
+
 player = None
-report = {'status': 'failed', 'hdr_verified': False, 'hardware_decoding_tested': False}
+report = {'status': 'failed', 'hdr_verified': False, 'hardware_decoding_tested': False, 'runtime_preload': runtime_info}
 try:
     opts = dict(config=False, hwdec='no', vo='gpu-next', gpu_api='opengl',
                 gpu_context='angle', idle=True, force_window=True)
@@ -35,6 +57,7 @@ try:
         opts['vd'] = 'lavc:libdav1d'
     player = mpv.MPV(**opts)
     report['version'] = player.mpv_version
+    report['msvcp140_loaded_from'] = _loaded_path('msvcp140.dll'); report['vcruntime140_loaded_from'] = _loaded_path('vcruntime140.dll')
     report['decoders'] = player.decoder_list
     if a.av1 and not any(x.get('driver') == 'libdav1d' for x in player.decoder_list):
         raise RuntimeError('libdav1d absent from loaded DLL')
