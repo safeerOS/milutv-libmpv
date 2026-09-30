@@ -6,6 +6,7 @@
     "mpeg1video",
     "mpeg2video",
     "mpeg4",
+    "h263",
     "vc1",
     "vp9",
     "av1",
