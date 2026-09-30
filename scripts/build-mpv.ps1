@@ -176,6 +176,10 @@ $dlls = @(Get-ChildItem $build -Recurse -Filter '*.dll' | Where-Object { $_.Name
 $mpvDll = @($dlls | Where-Object { $_.Name -match '^(lib)?mpv-2\.dll$' })
 if ($mpvDll.Count -ne 1) { throw "Expected one mpv-2.dll or libmpv-2.dll, found: $($dlls.Name -join ', ')" }
 $others = @($dlls | Where-Object { $_.FullName -ne $mpvDll[0].FullName })
+# Safeer: libxml2 gradi brezpogojen testni modul testdso.dll (meson.build: shared_module, brez opcije).
+# Ni odvisnost in ni povezan v mpv (libxml2 sama je staticna: default_library=static), zato ga tu
+# izvzamemo - a SAMO iz mape podprojekta libxml2. Vsaka druga DLL je se vedno napaka.
+$others = @($others | Where-Object { -not ($_.Name -ieq 'testdso.dll' -and $_.FullName -match '[\\/]subprojects[\\/]libxml2[\\/]') })
 if ($others.Count -gt 0) {
   throw "A dependency was built as a DLL instead of being linked into mpv: $($others.Name -join ', ')"
 }
