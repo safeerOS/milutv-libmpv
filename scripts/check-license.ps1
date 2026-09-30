@@ -75,7 +75,8 @@ if (Test-Path $mpvConfigPath) {
 
 # The DLL itself.
 $ascii = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($Dll))
-$required = @('d3d11-egl', 'd3d11vpp')
+# Safeer (pomozno; primarni prag je check-safeer-capabilities.py): enolicna niza libdav1d in DASH.
+$required = @('d3d11-egl', 'd3d11vpp', 'dav1d AV1 decoder by VideoLAN', 'Dynamic Adaptive Streaming over HTTP')
 foreach ($s in $required) {
   if (-not $ascii.Contains($s)) { $failures.Add("The DLL does not contain '$s'.") }
 }

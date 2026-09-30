@@ -72,9 +72,13 @@ Write-GitWrap 'ffmpeg' $versions.ffmpeg.repository $versions.ffmpeg.commit @(
 Write-GitWrap 'libplacebo' $versions.libplacebo.repository $versions.libplacebo.tag @()
 Write-GitWrap 'libass' $versions.libass.repository $versions.libass.tag @()
 
+Write-GitWrap 'dav1d' $versions.dav1d.repository $versions.dav1d.commit @(
+  'dependency_names = dav1d'
+)
+
 # 3. FFmpeg allow-list (see ffmpeg-components.json).
 $ffmpegArgs = @()
-$groups = [ordered]@{ decoder ='decoders'; parser = 'parsers'; demuxer = 'demuxers'; protocol = 'protocols'; hwaccel = 'hwaccels' }
+$groups = [ordered]@{ decoder ='decoders'; encoder = 'encoders'; parser = 'parsers'; demuxer = 'demuxers'; protocol = 'protocols'; hwaccel = 'hwaccels' }
 foreach ($kind in $groups.Keys) {
   $ffmpegArgs += "-Dffmpeg:$($groups[$kind])=disabled"
   foreach ($name in $components.$kind) { $ffmpegArgs += "-Dffmpeg:${name}_$kind=enabled" }
@@ -95,6 +99,13 @@ $mesonArgs = @(
   # libass looks libpng up for its test programs only (disabled), but forcefallback builds it anyway:
   # static, so that no png16-16.dll comes out next to mpv.
   '-Dlibpng:default_library=static',
+  '-Ddav1d:default_library=static', '-Ddav1d:enable_tools=false',
+  '-Ddav1d:enable_tests=false', '-Ddav1d:enable_examples=false',
+  '-Ddav1d:enable_docs=false', '-Ddav1d:enable_asm=true',
+  '-Dlibxml2:default_library=static', '-Dlibxml2:python=disabled',
+  '-Dlibxml2:docs=disabled', '-Dlibxml2:iconv=disabled',
+  '-Dlibxml2:icu=disabled', '-Dlibxml2:readline=disabled',
+  '-Dlibxml2:history=disabled', '-Dlibxml2:modules=disabled',
   # A list literal (meson never splits a c_args string on commas); forward slashes, no escapes.
   "-Dc_args=['-I$($AngleInclude.Replace('\', '/'))']",
 
@@ -139,6 +150,7 @@ $mesonArgs = @(
   '-Dffmpeg:gpl=disabled', '-Dffmpeg:version3=disabled', '-Dffmpeg:nonfree=disabled',
   '-Dffmpeg:programs=disabled', '-Dffmpeg:tests=disabled',
   '-Dffmpeg:avdevice=disabled', '-Dffmpeg:postproc=disabled',
+  '-Dffmpeg:libdav1d=enabled', '-Dffmpeg:libxml2=enabled',
   '-Dffmpeg:network=enabled', '-Dffmpeg:schannel=enabled',
   '-Dffmpeg:openssl=disabled', '-Dffmpeg:gnutls=disabled', '-Dffmpeg:mbedtls=disabled',
   '-Dffmpeg:d3d11va=enabled', '-Dffmpeg:d3d12va=disabled', '-Dffmpeg:dxva2=disabled',
@@ -154,6 +166,8 @@ $mesonArgs | Set-Content (Join-Path $WorkDir "meson-args-$Arch.txt")
 
 meson @mesonArgs
 meson compile -C $build
+python (Join-Path $PSScriptRoot 'check-safeer-capabilities.py') --build $build
+if ($LASTEXITCODE -ne 0) { throw "Safeer capability configuration check failed." }
 
 # 5. Exactly one DLL must come out: mpv, with FFmpeg and the rest inside.
 $dlls = @(Get-ChildItem $build -Recurse -Filter '*.dll' | Where-Object { $_.Name -notmatch '^(libEGL|libGLESv2)\.dll$' })

@@ -117,6 +117,9 @@ Copy-Item (Join-Path $angle 'LICENSE.ANGLE') (Join-Path $stage 'licenses\angle\L
 & (Join-Path $PSScriptRoot 'check-license.ps1') -BuildDir $build -Dll (Join-Path $stage 'libmpv-2.dll') `
   -OutFile (Join-Path $stage 'ffmpeg-license.txt') -FfmpegConfigCopy (Join-Path $stage 'ffmpeg-config.h')
 
+# Safeer configuration gate output; runtime evidence is produced separately.
+Copy-Item (Join-Path $build 'safeer-capabilities.json') $stage
+
 # 7. Manifest.
 $subprojectRevisions = [ordered]@{}
 foreach ($dir in $subprojectDirs) {

@@ -1,3 +1,5 @@
+> Safeer development patch: see SAFEER-BUILD.md. Not yet Windows-build validated.
+
 # milutv-libmpv
 
 LGPL builds of [libmpv](https://mpv.io) for Windows x64 and arm64, with [ANGLE](https://chromium.googlesource.com/angle/angle), as used by the MiluTV Windows app.
