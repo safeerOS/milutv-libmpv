@@ -1,4 +1,4 @@
-> Safeer development patch: see SAFEER-BUILD.md. Not yet Windows-build validated.
+> Safeer development patch: see SAFEER-BUILD.md. Windows x64 CI build passes; playback not yet validated.
 
 # milutv-libmpv
 

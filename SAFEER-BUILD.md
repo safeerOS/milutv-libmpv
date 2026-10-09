@@ -1,7 +1,8 @@
 # Safeer libmpv: AV1, DASH and snapshots
 
-Status: source patch, NOT a compiled Windows release. Based on jmonsellier/milutv-libmpv
-commit a36a682b06531c7b56fbe1260de88fab4152f65a. No DLL is included.
+Status: development branch `safeer-build-r1`, NOT a published release. Based on
+jmonsellier/milutv-libmpv commit a36a682b06531c7b56fbe1260de88fab4152f65a. No DLL is
+committed; the x64 CI build (manual `build` workflow) produces the package as a run artifact.
 
 ## Kaj je pripravljeno
 
@@ -9,7 +10,8 @@ commit a36a682b06531c7b56fbe1260de88fab4152f65a. No DLL is included.
 - libxml2 2.15.4: source archive SHA256 verified against the Meson wrap.
 - AV1 software decoding, DASH, Matroska/WebM, PNG and MJPEG encoding enabled.
 - Existing MPEG-4 decoder retained. Existing ANGLE rendering retained; Vulkan stays disabled.
-- Static dependency builds; no new runtime DLL deliberately added.
+- Static dependency builds; no new dependency DLL. The MSVC runtime is shipped on purpose in
+  `runtime/` (see README, "MSVC runtime (Safeer)").
 - Configuration check fails the build if required FFmpeg features are missing.
 - Windows playback probe with AV1 forcing, playback progress and PNG capture.
 - Existing packaging collects new dependency licenses and source trees automatically;
@@ -17,10 +19,9 @@ commit a36a682b06531c7b56fbe1260de88fab4152f65a. No DLL is included.
 
 ## Uporaba popravka v obstoječem klonu
 
-Save local changes first. Run `git apply --check safeer-libmpv.patch` then
-`git apply safeer-libmpv.patch` at the repository root. If check fails, reconcile
-changes; do not reset or overwrite your existing work. The full patched recipe
-is also provided in recipe/ for comparison or a fresh working directory.
+The patch is already applied on branch `safeer-build-r1` (commit 0dee8cb and later);
+this repository holds no separate `safeer-libmpv.patch` file nor a `recipe/` directory.
+To compare with the base, run `git diff a36a682 safeer-build-r1`.
 
 ## Gradnja Windows x64
 
@@ -40,9 +41,10 @@ $env:WINDRES='llvm-rc'
 ./scripts/pack-sources.ps1
 ```
 
-The existing build workflow can run manually. It builds x64 and ARM64 by default.
-For the first experiment limit the matrix to x64 if desired. Do not push a release
-tag until runtime tests pass: the upstream tag workflow publishes releases.
+On this branch `.github/workflows/build.yml` runs only by hand (workflow_dispatch) and
+builds only x64; the upstream tag trigger and `release` job are removed, so nothing is
+published and the archives stay as run artifacts (30 days). Do not restore the release
+job until the runtime tests below pass.
 The output naming remains milutv-libmpv-safeer-av1-dash-snapshot-r1-x64 to minimize
 changes to packaging. A Safeer branding rename can be a separate change.
 
@@ -70,7 +72,8 @@ The probe checks progress and PNG structure but cannot judge visual correctness.
 
 ## Remaining release gates
 
-- Windows compilation and linking have NOT been run in the authoring environment.
+- Windows compilation and linking: pass in CI for x64 only (runs 36671556517 and 36682873363);
+  arm64 is not built on this branch.
 - No actual playback, HDR or GPU validation has been run for this patch.
 - Inspect package licenses and source archive before distribution; this is not a full legal audit.
 - Verify HTTP headers/cookies, redirects, seeking, reconnects and long playback separately.
