@@ -1,3 +1,5 @@
 /work/
 /dist/
 /vcpkg-binary-cache/
+__pycache__/
+*.pyc
