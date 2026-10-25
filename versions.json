@@ -1,5 +1,5 @@
 {
-  "release": "safeer-av1-dash-snapshot-r1",
+  "release": "safeer-av1-dash-snapshot-r2-utrjeno",
   "mpv": {
     "repository": "https://github.com/mpv-player/mpv",
     "commit": "f9850ee727ed54a4feb042a5c0802768f141810b",

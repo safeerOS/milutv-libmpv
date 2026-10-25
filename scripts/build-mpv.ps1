@@ -109,7 +109,12 @@ $mesonArgs = @(
   '-Dlibxml2:icu=disabled', '-Dlibxml2:readline=disabled',
   '-Dlibxml2:history=disabled', '-Dlibxml2:modules=disabled',
   # A list literal (meson never splits a c_args string on commas); forward slashes, no escapes.
-  "-Dc_args=['-I$($AngleInclude.Replace('\', '/'))']",
+  # Safeer, utrjena gradnja (25. 10. 2026): Control Flow Guard (-mguard=cf, lld-link /guard:cf) in CET shadow stack
+  # (/cetcompat) - r1 jih ni imel (pe_utrjenost.py: libmpv-2.dll brez CFG in CETCOMPAT).
+  "-Dc_args=['-I$($AngleInclude.Replace('\', '/'))', '-mguard=cf']",
+  "-Dcpp_args=['-mguard=cf']",
+  "-Dc_link_args=['-mguard=cf', '-Wl,/guard:cf', '-Wl,/cetcompat']",
+  "-Dcpp_link_args=['-mguard=cf', '-Wl,/guard:cf', '-Wl,/cetcompat']",
 
   # mpv: libmpv only, LGPL, OpenGL render API with the ANGLE interop and D3D11VA decoding.
   '-Dlibmpv=true', '-Dcplayer=false', '-Dtests=false', '-Dgpl=false',
